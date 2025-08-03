@@ -1,0 +1,12 @@
+pymupdf==1.23.5  # PDF processing
+pytesseract==0.3.10  # OCR
+pillow==10.1.0  # Image handling
+pandas==2.1.4  # Data processing
+python-docx==0.8.11  # DOCX handling
+docx2txt==0.8  # Alternative DOCX
+openpyxl==3.1.2  # Excel support
+python-magic==0.4.27  # File type detection
+python-dotenv==1.0.0  # Environment variables
+supabase==2.3.1  # Database
+requests==2.31.0  # HTTP calls
+concurrent-log-handler==0.9.24  # Logging
