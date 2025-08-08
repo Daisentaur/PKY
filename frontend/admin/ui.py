@@ -204,6 +204,145 @@ def user_management():
                 st.session_state.users.append(new_user)
                 st.success("User Added Successfully")
                 st.rerun()
+def config_file_management():
+    st.header("📝 Config File Management")
+    
+    # Fetch all document sessions
+    df = fetch_document_sessions()
+    if df is None or df.empty:
+        st.warning("No config data available in the database")
+        return
+    
+    # Extract all unique config keys from the database
+    try:
+        all_config_keys = set()
+        for config_data in df['config_data']:
+            if isinstance(config_data, dict):
+                all_config_keys.update(config_data.keys())
+        all_config_keys = sorted(all_config_keys)
+    except Exception as e:
+        st.error(f"Failed to extract config keys: {str(e)}")
+        return
+    
+    st.subheader("🔍 Select Config to Edit")
+    
+    # Session selection
+    session_options = df['session_id'].unique()
+    selected_session = st.selectbox(
+        "Select a session",
+        options=session_options,
+        index=0,
+        help="Select the session containing the config you want to edit"
+    )
+    
+    # Get the selected record
+    selected_record = df[df['session_id'] == selected_session].iloc[0]
+    config_data = selected_record['config_data']
+    
+    if not isinstance(config_data, dict):
+        st.error("Invalid config data format in the selected record")
+        return
+    
+    st.subheader("📋 Current Configuration")
+    st.json(config_data)
+    
+    st.subheader("✏️ Edit Configuration")
+    
+    # Create editable fields for each config key
+    updated_config = {}
+    with st.form("config_edit_form"):
+        for key in sorted(config_data.keys()):
+            current_value = config_data[key]
+            
+            # Handle different data types appropriately
+            if isinstance(current_value, bool):
+                updated_value = st.checkbox(key, value=current_value, key=f"config_{key}")
+            elif isinstance(current_value, (int, float)):
+                updated_value = st.number_input(key, value=current_value, key=f"config_{key}")
+            elif isinstance(current_value, str):
+                updated_value = st.text_area(key, value=current_value, key=f"config_{key}")
+            elif isinstance(current_value, list):
+                updated_value = st.text_area(
+                    key, 
+                    value="\n".join(map(str, current_value)), 
+                    help="Enter one item per line for lists",
+                    key=f"config_{key}"
+                )
+                updated_value = [line.strip() for line in updated_value.split("\n") if line.strip()]
+            elif isinstance(current_value, dict):
+                updated_value = st.text_area(
+                    key,
+                    value=str(current_value),
+                    help="Enter valid JSON for dictionaries",
+                    key=f"config_{key}"
+                )
+                try:
+                    updated_value = eval(updated_value) if updated_value else {}
+                except:
+                    st.warning(f"Invalid format for {key}. Keeping original value.")
+                    updated_value = current_value
+            else:
+                updated_value = st.text_area(key, value=str(current_value), key=f"config_{key}")
+            
+            updated_config[key] = updated_value
+        
+        # Add new key option
+        st.markdown("---")
+        new_key = st.text_input("Add new config key (optional)", key="new_config_key")
+        if new_key:
+            new_value = st.text_area("Value for new key", key="new_config_value")
+            if new_value:
+                try:
+                    # Try to evaluate as Python literal (for numbers, bools, etc.)
+                    updated_config[new_key] = eval(new_value)
+                except:
+                    # Fall back to string if evaluation fails
+                    updated_config[new_key] = new_value
+        
+        submitted = st.form_submit_button("💾 Save Changes")
+    
+    if submitted:
+        try:
+            # Update the record in the database
+            update_response = supabase.table("document_sessions").update(
+                {"config_data": updated_config}
+            ).eq("id", selected_record['id']).execute()
+            
+            if update_response.data:
+                st.success("✅ Config updated successfully!")
+                # Refresh the data
+                time.sleep(1)
+                st.rerun()
+            else:
+                st.error("Failed to update config")
+        except Exception as e:
+            st.error(f"Error updating config: {str(e)}")
+    
+    st.subheader("⚙️ Advanced Operations")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("🔄 Refresh Config Data"):
+            st.rerun()
+    
+    with col2:
+        if st.button("🗑️ Delete This Config", type="secondary"):
+            if st.checkbox("Are you sure you want to delete this config?"):
+                try:
+                    # Set config_data to empty dict
+                    delete_response = supabase.table("document_sessions").update(
+                        {"config_data": {}}
+                    ).eq("id", selected_record['id']).execute()
+                    
+                    if delete_response.data:
+                        st.success("Config cleared successfully!")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("Failed to clear config")
+                except Exception as e:
+                    st.error(f"Error clearing config: {str(e)}")
 
 def dashboard():
     st.title("Admin Dashboard")
@@ -234,8 +373,7 @@ def dashboard():
     elif menu_option == "DataBase Management":
         database_management()
     elif menu_option == "Config File Management":
-        st.header("📝 Config File Management")
-        st.info("This feature is under development")
+        config_file_management()
     elif menu_option == "Status Check":
         st.header("⚙️ Status Check")
         if supabase:
