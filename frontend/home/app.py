@@ -5,8 +5,8 @@ import numpy as np
 from streamlit_js_eval import streamlit_js_eval
 
 def main():
-    st.title(" Home Page")
-    st.write("Welcome to the Home Page!")
+    st.title(" Insurance Analyser")
+    st.write("Welcome to the Insurance Analyser!")
 
     st.write("")
     st.write("")
@@ -41,7 +41,7 @@ def main():
 
     st.markdown("###  Activity (last 30 days)")
 
-    # 🔹 Dummy demo data – replace with real query to your DB ----------
+    # Dummy demo data – replace with real query to your DB ----------
     dates = pd.date_range(end=pd.Timestamp.today(), periods=30)
     df_activity = pd.DataFrame({
         "date": dates,
@@ -62,7 +62,7 @@ def main():
 
 
     # ------------------ CLIENT METRICS ------------------
-    st.markdown("### 👥 Client Activity")
+    st.markdown("###  Client Activity")
 
 
     if st.session_state.get("is_mobile"):
@@ -82,7 +82,7 @@ def main():
 if "page" not in st.session_state:
     st.session_state["page"] = "home"
 
-st.sidebar.title("📚 Menu")
+st.sidebar.title(" Menu")
 if st.sidebar.button(" Home"):
     st.session_state["page"] = "home"
 if st.sidebar.button(" Client Page"):
@@ -95,7 +95,8 @@ if st.sidebar.button(" Admin Page"):
 if st.session_state["page"] == "home":
     main()
 elif st.session_state["page"] == "client":
-    Client_Page.main()
+    with open("Client_Page.py", "r", encoding="utf-8") as f:
+        exec(f.read())
 elif st.session_state["page"] == "admin":
-    Admin_Page.main()
-
+    with open("Admin_Page.py", "r", encoding="utf-8") as f:
+        exec(f.read())
