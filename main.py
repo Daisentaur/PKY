@@ -26,6 +26,9 @@ if st.sidebar.button(" Admin Page"):
 if st.session_state["page"] == "home":
     runpy.run_path("Home/Home_Page.py")
 elif st.session_state["page"] == "client":
-    runpy.run_path("Client/Client_Page.py")
+    runpy.run_path("Client/app.py")
+    time.sleep(3)
+    runpy.run_path("Client/ui.py")
 elif st.session_state["page"] == "admin":
     runpy.run_path("Admin/Admin_Page.py")
+
