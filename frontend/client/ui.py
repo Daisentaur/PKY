@@ -40,7 +40,7 @@ def init_session_state():
         'extraction_results': {},
         'text_sample': ''
     }
-    
+
     for key, default_value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = default_value
@@ -147,11 +147,11 @@ def upload_config_files(config_files) -> bool:
                             "session_id": session_id,
                             "content": config_file.getvalue()
                         })
-                        st.success(f"✅ {config_file.name}")
+                        st.success(f" {config_file.name}")
                     else:
-                        st.error(f"❌ {config_file.name} - No session ID returned")
+                        st.error(f" {config_file.name} - No session ID returned")
                 else:
-                    st.error(f"❌ {config_file.name} - {response.text}")
+                    st.error(f" {config_file.name} - {response.text}")
         
         if session_ids:
             st.session_state.session_id = session_ids[0]
@@ -162,13 +162,13 @@ def upload_config_files(config_files) -> bool:
         return False
         
     except requests.exceptions.ConnectionError:
-        st.error("❌ Backend connection failed. Is the server running?")
+        st.error(" Backend connection failed. Is the server running?")
         return False
     except requests.exceptions.Timeout:
-        st.error("❌ Request timeout. Server may be overloaded.")
+        st.error(" Request timeout. Server may be overloaded.")
         return False
     except Exception as e:
-        st.error(f"❌ Error processing config files: {str(e)}")
+        st.error(f" Error processing config files: {str(e)}")
         return False
 
 def process_documents(files_data: List[tuple], session_id: str) -> bool:
@@ -188,20 +188,20 @@ def process_documents(files_data: List[tuple], session_id: str) -> bool:
                 st.session_state.text_sample = result.get("text_sample", "")
                 st.session_state.analysis_complete = True
                 st.session_state.show_results = False
-                status.update(label="✅ Analysis complete!", state="complete")
+                status.update(label=" Analysis complete!", state="complete")
                 return True
             else:
-                st.error(f"❌ Backend error: {response.text}")
+                st.error(f" Backend error: {response.text}")
                 return False
                 
     except requests.exceptions.ConnectionError:
-        st.error("❌ Backend connection failed during analysis")
+        st.error(" Backend connection failed during analysis")
         return False
     except requests.exceptions.Timeout:
-        st.error("❌ Analysis timeout. Try with fewer or smaller files.")
+        st.error(" Analysis timeout. Try with fewer or smaller files.")
         return False
     except Exception as e:
-        st.error(f"❌ Analysis failed: {str(e)}")
+        st.error(f" Analysis failed: {str(e)}")
         return False
 
 
@@ -219,20 +219,10 @@ with st.sidebar:
     """)
     
     if st.session_state.config_uploaded:
-        st.success(f"✅ {len(st.session_state.uploaded_configs)} config file(s) uploaded")
-        if st.button("🔄 Clear Session"):
+        st.success(f" {len(st.session_state.uploaded_configs)} config file(s) uploaded")
+        if st.button(" Clear Session"):
             reset_session()
             st.rerun()
-    
-    # Backend status check
-    try:
-        response = requests.get(f"{BACKEND_URL}/health", timeout=5)
-        if response.status_code == 200:
-            st.success("🟢 Backend Online")
-        else:
-            st.error("🔴 Backend Error")
-    except:
-        st.error("🔴 Backend Offline")
 
 # Step 1: Multiple Config File Upload
 st.subheader("Step 1: Upload Configuration Files")
@@ -248,11 +238,11 @@ if not st.session_state.config_uploaded:
     if config_files:
         st.info(f"Selected {len(config_files)} config file(s)")
         
-        if st.button("📤 Upload Configurations", type="primary"):
+        if st.button(" Upload Configurations", type="primary"):
             if upload_config_files(config_files):
                 st.rerun()
 else:
-    st.success("✅ Configuration files uploaded successfully!")
+    st.success(" Configuration files uploaded successfully!")
     
     # Show uploaded configs
     with st.expander("View uploaded configurations"):
@@ -263,6 +253,14 @@ else:
 if st.session_state.config_uploaded:
     st.subheader("Step 2: Upload Documents")
     
+    # optional keyword input
+    st.caption("Add keywords through text (Optional)")
+    additional_keywords = st.text_input(
+        "Extra keywords (comma separated):",
+        placeholder="e.g., contract, agreement, termination",
+        help="Add additional terms to focus the analysis on specific concepts"
+    )
+
     # Upload method selection
     upload_option = st.radio(
         "Upload method:",
@@ -293,7 +291,7 @@ if st.session_state.config_uploaded:
             
             uploaded_files = valid_files
             if uploaded_files:
-                st.success(f"✅ Selected {len(uploaded_files)} valid file(s)")
+                st.success(f" Selected {len(uploaded_files)} valid file(s)")
                 files_ready = True
     
     elif upload_option == "ZIP Archive":
@@ -307,17 +305,18 @@ if st.session_state.config_uploaded:
             if not validate_file_size(zip_file):
                 st.error(f"ZIP file too large (max {MAX_FILE_SIZE//1024//1024}MB)")
             else:
-                with st.spinner("📦 Extracting ZIP file..."):
+                with st.spinner(" Extracting ZIP file..."):
                     extracted_files = extract_zip_files(zip_file)
                     
                 if extracted_files:
                     st.session_state.extracted_files = extracted_files
-                    st.success(f"✅ Extracted {len(extracted_files)} document(s)")
+                    st.success(f" Extracted {len(extracted_files)} document(s)")
                     files_ready = True
                 else:
                     st.error("No valid documents found in ZIP archive")
 
     # Process documents when ready
+
     if files_ready:
         # Config selection (if multiple configs)
         selected_session_id = st.session_state.session_id
@@ -332,7 +331,7 @@ if st.session_state.config_uploaded:
                 if cfg["name"] == selected_config
             )
         
-        if st.button("🔍 Analyze Documents", type="primary"):
+        if st.button(" Analyze Documents", type="primary"):
             # Prepare files for upload
             files_data = []
             
@@ -348,12 +347,32 @@ if st.session_state.config_uploaded:
                                 files_data.append(("document_files", (os.path.basename(file_path), f.read())))
                 
                 if files_data:
-                    process_documents(files_data, selected_session_id)
+                    # Modified to include keywords in the request
+                    data = {"session_id": selected_session_id}
+                    if additional_keywords:
+                        data["keywords"] = additional_keywords
+                    
+                    response = requests.post(
+                        f"{BACKEND_URL}/upload_documents",
+                        files=files_data,
+                        data=data,  # Now includes optional keywords
+                        timeout=300
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        st.session_state.extraction_results = result.get("data", {})
+                        st.session_state.text_sample = result.get("text_sample", "")
+                        st.session_state.analysis_complete = True
+                        st.session_state.show_results = False
+                        st.rerun()
+                    else:
+                        st.error(f" Backend error: {response.text}")
                 else:
                     st.error("No files to process")
                     
             except Exception as e:
-                st.error(f"Error preparing files: {str(e)}")
+                st.error(f"Error processing documents: {str(e)}")
 
 # Step 3: Results Section
 if st.session_state.analysis_complete:
@@ -361,22 +380,22 @@ if st.session_state.analysis_complete:
     
     col1, col2 = st.columns([1, 1])
     with col1:
-        if st.button("👁️ Show Results") and not st.session_state.show_results:
+        if st.button(" Show Results") and not st.session_state.show_results:
             st.session_state.show_results = True
             st.rerun()
     
     with col2:
-        if st.session_state.show_results and st.button("👁️‍🗨️ Hide Results"):
+        if st.session_state.show_results and st.button(" Hide Results"):
             st.session_state.show_results = False
             st.rerun()
     
     if st.session_state.show_results:
         # Display results
-        st.subheader("📊 Analysis Results")
+        st.subheader(" Analysis Results")
         
         # Text sample preview
         if st.session_state.text_sample:
-            with st.expander("📄 View Document Sample"):
+            with st.expander(" View Document Sample"):
                 st.text_area(
                     "Sample Text", 
                     st.session_state.text_sample, 
@@ -427,7 +446,7 @@ if st.session_state.analysis_complete:
             st.error(f"Error displaying results: {str(e)}")
         
         # Download section
-        st.subheader("💾 Download Results")
+        st.subheader(" Download Results")
         d1_col1, d1_col2 = st.columns(2)
         file_data = None
         filename = ""
