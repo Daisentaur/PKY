@@ -26,11 +26,17 @@ if st.sidebar.button(" Admin Page"):
 if st.session_state["page"] == "home":
     runpy.run_path("frontend/home/ui.py")
 elif st.session_state["page"] == "client":
-    runpy.run_path("core/app.py")
-    # time.sleep(1)
-    runpy.run_path("frontend/client/ui.py")
+    backend_process = subprocess.Popen(["python", "Client/Client_app.py"])
+    
+    # Give it time to start (adjust sleep as needed)
+    time.sleep(2)  
+    
+    runpy.run_path("Client/Client_Page.py")
+    # Open frontend
+    # subprocess.Popen(["streamlit", "run", "Client/Client_Page.py"])
 elif st.session_state["page"] == "admin":
     runpy.run_path("frontend/admin/ui.py")
+
 
 
 
