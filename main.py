@@ -27,9 +27,10 @@ if st.session_state["page"] == "home":
     runpy.run_path("frontend/home/ui.py")
 elif st.session_state["page"] == "client":
     runpy.run_path("core/app.py")
-    time.sleep(3)
+    # time.sleep(1)
     runpy.run_path("frontend/client/ui.py")
 elif st.session_state["page"] == "admin":
     runpy.run_path("frontend/admin/ui.py")
+
 
 
