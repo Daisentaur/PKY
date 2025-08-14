@@ -1,5 +1,7 @@
 import streamlit as st
 import runpy 
+import subprocess
+import time
 
 st.markdown("""
     <style>
@@ -36,6 +38,7 @@ elif st.session_state["page"] == "client":
     # subprocess.Popen(["streamlit", "run", "Client/Client_Page.py"])
 elif st.session_state["page"] == "admin":
     runpy.run_path("frontend/admin/ui.py")
+
 
 
 
