@@ -78,6 +78,7 @@ def parse_metadata(metadata):
         return metadata
     return {}
 
+
 # Process data for KPIs
 total_files = len(df)
 successful_extractions = sum(1 for _, row in df.iterrows() if row.get('extracted_data'))
@@ -96,7 +97,6 @@ for _, row in df.iterrows():
             file_types[file_type] = file_types.get(file_type, 0) + 1
 
 
-
 # Calculate activity data (last 30 days)
 activity_data = {}
 for _, row in df.iterrows():
@@ -113,17 +113,28 @@ for _, row in df.iterrows():
 df_activity = pd.DataFrame(list(activity_data.items()), columns=['date', 'count']).set_index('date')
 df_file_types = pd.DataFrame(list(file_types.items()), columns=['format', 'count']).set_index('format')
 
+
+show_last_30_days = st.toggle("Show Last 30 Days Only", value=True)
+# Filter activity data based on toggle
+if show_last_30_days and not df_activity.empty:
+    last_date = df_activity.index.max()
+    cutoff_date = last_date - pd.Timedelta(days=30)
+    filtered_activity = df_activity[df_activity.index >= cutoff_date]
+else:
+    filtered_activity = df_activity
+
+
 # KPIs Section
 colA, colB, colC = st.columns(3)
 colA.metric("Total Files Processed", total_files)
-colB.metric("Successful Extractions", successful_extractions)
-colC.metric("Success Rate", f"{(successful_extractions / total_files * 100):.1f} %" if total_files > 0 else "0 %")
+colB.metric("Total Extractions", successful_extractions)
+colC.metric("Document Extraction rate", f"{(successful_extractions / total_files * 100):.1f} %" if total_files > 0 else "0 %")
 
 
 # Activity Chart
 st.markdown("### Activity (last 30 days)")
-if not df_activity.empty:
-    st.line_chart(df_activity, use_container_width=True)
+if not filtered_activity.empty:
+    st.line_chart(filtered_activity, use_container_width=True)
 else:
     st.warning("No activity data available")
 
@@ -144,4 +155,3 @@ if 'session_id' in df.columns:
     col1.metric("Total Sessions", unique_sessions)
     col2.metric("Total Documents", total_files)
     col3.metric("Avg Docs per Session", f"{avg_files_per_session:.1f}")
-
