@@ -32,7 +32,6 @@ def fetch_document_sessions():
 
 
 
-
 st.title(" Insurance Analyser")
 st.write("Welcome to the Insurance Analyser!")
 st.write("")
@@ -61,9 +60,6 @@ st.markdown("""
 
 
 
-
-
-
 # Fetch all documents from Supabase
 df = fetch_document_sessions()
 if df.empty:
@@ -82,8 +78,6 @@ def parse_metadata(metadata):
         return metadata
     return {}
 
-
-
 # Process data for KPIs
 total_files = len(df)
 successful_extractions = sum(1 for _, row in df.iterrows() if row.get('extracted_data'))
@@ -100,7 +94,6 @@ for _, row in df.iterrows():
                 file_types[ft] = file_types.get(ft, 0) + 1
         else:
             file_types[file_type] = file_types.get(file_type, 0) + 1
-
 
 
 
@@ -151,3 +144,4 @@ if 'session_id' in df.columns:
     col1.metric("Total Sessions", unique_sessions)
     col2.metric("Total Documents", total_files)
     col3.metric("Avg Docs per Session", f"{avg_files_per_session:.1f}")
+
