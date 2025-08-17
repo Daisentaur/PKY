@@ -27,6 +27,23 @@ st.markdown("""
     2. Upload documents (multiple files or zipped folders)  
 """)
 
+
+st.write("")
+st.write("")
+st.markdown("### Sample YAML file ")
+st.code("""
+  fields:
+    - name: "John Doe"
+      keywords: ["insurance", "health"]
+      response_type: "detailed"
+    - name: "Jane Smith"
+      keywords: ["auto", "accident"]
+      response_type: "concise"
+""", language="yaml")
+st.write("")
+st.write("")
+
+
 def init_session_state():
     """Initialize session state variables"""
     defaults = {
