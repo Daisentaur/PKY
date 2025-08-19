@@ -1,6 +1,6 @@
 import os
 import docx
-from typing import Union,Optional, Dict, Any
+from typing import Union, Optional, Dict, Any
 import json
 import yaml
 import uuid
@@ -13,7 +13,7 @@ from werkzeug.utils import secure_filename
 from flask_cors import CORS
 import fitz  # PyMuPDF
 import pytesseract
-from PIL import Image
+from PIL import Image, ImageEnhance
 import io
 import pandas as pd
 import requests
@@ -35,14 +35,13 @@ CORS(app, origins=["http://localhost:8501", "http://127.0.0.1:8501"],
 # Configuration
 CHUNK_SIZE = 2000
 CHUNK_OVERLAP = 400
-SUPPORTED_DOC_TYPES = [".pdf", ".docx", ".txt", ".xlsx", ".csv"]
+SUPPORTED_DOC_TYPES = [".pdf", ".docx", ".txt", ".xlsx", ".csv", ".png", ".jpg", ".jpeg"]
 SUPPORTED_CONFIG_TYPES = [".yaml", ".yml", ".json"]
 MIN_TEXT_LENGTH = 50
 MAX_CONFIG_SIZE = 1 * 1024 * 1024  # 1MB
 SESSION_EXPIRE_HOURS = 2
 
 # Initialize Supabase client
-# Initialize Supabase client with type-safe env handling
 def get_required_env(var: str) -> str:
     """Get required environment variable or raise error"""
     val = os.getenv(var)
@@ -56,7 +55,7 @@ key = get_required_env("SUPABASE_KEY")
 supabase = create_client(url, key)
 TABLE_NAME = "document_sessions"
 
-# In-memory session store (now used as cache alongside database)
+# In-memory session store
 sessions = {}
 
 # Database Operations
@@ -77,8 +76,6 @@ def create_session_record(session_id: str, config_data: dict):
         print(f"Database error creating session: {str(e)}")
         raise
 
-from typing import Optional, Dict, Any
-
 def update_session_record(
     session_id: str, 
     extracted_data: Dict[str, Any], 
@@ -95,7 +92,7 @@ def update_session_record(
             }
         }
         
-        if metadata is not None:  # Explicit check for None
+        if metadata is not None:
             update_data["document_metadata"].update(metadata)
             
         supabase.table(TABLE_NAME)\
@@ -118,10 +115,10 @@ def get_session_record(session_id: str):
         print(f"Database error getting session: {str(e)}")
         raise
 
-# Helper Functions (unchanged from your original)
+# Helper Functions
 def allowed_document_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in {'pdf', 'docx', 'txt', 'xlsx', 'csv'}
+           filename.rsplit('.', 1)[1].lower() in {'pdf', 'docx', 'txt', 'xlsx', 'csv', 'png', 'jpg', 'jpeg'}
 
 def allowed_config_file(filename):
     return '.' in filename and \
@@ -149,6 +146,30 @@ def extract_text_with_ocr(pdf_path):
             
     doc.close()
     return full_text.strip()
+
+def extract_text_from_image(image_path):
+    """Extract text from image using OCR with preprocessing"""
+    try:
+        # Open and preprocess image
+        image = Image.open(image_path)
+        
+        # Convert to grayscale for better OCR
+        if image.mode != 'L':
+            image = image.convert('L')
+        
+        # Enhance contrast
+        enhancer = ImageEnhance.Contrast(image)
+        image = enhancer.enhance(2.0)
+        
+        # Use pytesseract with optimized configuration
+        custom_config = r'--oem 3 --psm 6'
+        text = pytesseract.image_to_string(image, config=custom_config)
+        
+        return text.strip()
+        
+    except Exception as e:
+        print(f"OCR extraction error: {str(e)}")
+        return ""
 
 def parse_config_file(file):
     """Parse and validate config file"""
@@ -197,7 +218,7 @@ def query_gemini(prompt: str, session_id: Union[str, None] = None) -> str:
     """Call Google Gemini API with the given prompt"""
     try:
         # Initialize the model with proper typing
-        model = ChatGoogleGenerativeAI(model='gemini-2.0-flash')
+        model = ChatGoogleGenerativeAI(model='gemini-1.5-flash')  # Fixed model name
         # Get response with type checking
         response = model.invoke(prompt)
         
@@ -384,6 +405,18 @@ def upload_documents():
 
                         docs = [Document(page_content=content)]
                         documents.extend(docs)
+                elif filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    try:
+                        text = extract_text_from_image(filepath)
+                        if text and len(text.strip()) > MIN_TEXT_LENGTH:
+                            documents.append(Document(page_content=text, metadata={"source": filename}))
+                            print(f"OCR extraction successful for {filename}: {len(text)} characters")
+                        else:
+                            print(f"OCR extracted little or no text from {filename}")
+                            documents.append(Document(page_content=f"Image file: {filename}", metadata={"source": filename}))
+                    except Exception as e:
+                        print(f"OCR extraction failed for {filename}: {str(e)}")
+                        documents.append(Document(page_content=f"Image file: {filename}", metadata={"source": filename}))
                     
             except Exception as e:
                 continue
@@ -516,7 +549,8 @@ def health_check():
 if __name__ == '__main__':
     # Verify Tesseract installation
     try:
-        pytesseract.get_tesseract_version()
+        tesseract_version = pytesseract.get_tesseract_version()
+        print(f"Tesseract version: {tesseract_version}")
     except EnvironmentError:
         print("Warning: Tesseract OCR not installed")
     
