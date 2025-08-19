@@ -16,17 +16,16 @@ from typing import List, Dict, Any, Optional
 # Configuration
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:5001")
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB per file
-SUPPORTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.csv', '.xlsx']
+SUPPORTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.csv', '.xlsx', '.png', '.jpg', '.jpeg']
 CONFIG_EXTENSIONS = ['yaml', 'yml', 'json']
 
-st.set_page_config(page_title="Document Analyzer", layout="wide")
+
 st.title("Document Analyzer")
 st.markdown("""
     **Advanced document analysis workflow:**  
     1. Upload configuration files  
     2. Upload documents (multiple files or zipped folders)  
 """)
-
 
 st.write("")
 st.write("")
@@ -42,6 +41,7 @@ st.code("""
 """, language="yaml")
 st.write("")
 st.write("")
+
 
 
 def init_session_state():
@@ -292,7 +292,7 @@ if st.session_state.config_uploaded:
     if upload_option == "Individual Files":
         uploaded_files = st.file_uploader(
             "Choose documents to analyze",
-            type=["pdf", "docx", "txt"],
+            type=["pdf", "docx", "txt", "xlsx", "csv", "png", "jpg", "jpeg"],
             accept_multiple_files=True,
             key="doc_upload"
         )
