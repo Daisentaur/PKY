@@ -27,20 +27,6 @@ st.markdown("""
     2. Upload documents (multiple files or zipped folders)  
 """)
 
-st.write("")
-st.write("")
-st.markdown("### Sample YAML file ")
-st.code("""
-  fields:
-    - name: "John Doe"
-      keywords: ["insurance", "health"]
-      response_type: "detailed"
-    - name: "Jane Smith"
-      keywords: ["auto", "accident"]
-      response_type: "concise"
-""", language="yaml")
-st.write("")
-st.write("")
 
 
 
@@ -242,7 +228,20 @@ with st.sidebar:
             st.rerun()
 
 # Step 1: Multiple Config File Upload
+st.write("")
 st.subheader("Step 1: Upload Configuration Files")
+st.markdown("### Sample YAML file ")
+st.code("""
+  fields:
+    - name: "John Doe"
+      keywords: ["insurance", "health"]
+      response_type: "detailed"
+    - name: "Jane Smith"
+      keywords: ["auto", "accident"]
+      response_type: "concise"
+""", language="yaml")
+st.write("")
+st.write("")
 
 if not st.session_state.config_uploaded:
     config_files = st.file_uploader(
